@@ -1,6 +1,6 @@
 [submodule "lib/bls-signatures"]
 	path = lib/bls-signatures
-	url = https://github.com/madMAx43v3r/bls-signatures.git
+	url = https://github.com/yanghaoxuan2017/bls-signatures.git
 [submodule "lib/BLAKE3"]
 	path = lib/BLAKE3
-	url = https://github.com/BLAKE3-team/BLAKE3.git
+	url = https://github.com/yanghaoxuan2017/BLAKE3.git
