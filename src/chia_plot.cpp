@@ -160,7 +160,8 @@ int main(int argc, char** argv)
 		"<tmpdir2> needs about 110 GiB space and ideally is a RAM drive, it will handle about 75% of all writes.\n"
 		"Combined (tmpdir + tmpdir2) peak disk usage is less than 256 GiB.\n"
 		"In case of <count> != 1, you may press Ctrl-C for graceful termination after current plot is finished,\n"
-		"or double press Ctrl-C to terminate immediately.\n"
+		"or double press Ctrl-C to terminate immediately.\n\n"
+		"(Sponsored by Flexpool.io - Check them out if you're looking for a secure and scalable Chia pool)\n"
 	);
 	
 	std::string pool_key_str;
@@ -172,6 +173,7 @@ int main(int argc, char** argv)
 	int num_threads = 4;
 	int num_buckets = 256;
 	int num_buckets_3 = 0;
+	bool waitforcopy = false;
 	bool tmptoggle = false;
 	
 	options.allow_unrecognised_options().add_options()(
@@ -182,6 +184,7 @@ int main(int argc, char** argv)
 		"t, tmpdir", "Temporary directory, needs ~220 GiB (default = $PWD)", cxxopts::value<std::string>(tmp_dir))(
 		"2, tmpdir2", "Temporary directory 2, needs ~110 GiB [RAM] (default = <tmpdir>)", cxxopts::value<std::string>(tmp_dir2))(
 		"d, finaldir", "Final directory (default = <tmpdir>)", cxxopts::value<std::string>(final_dir))(
+		"w, waitforcopy", "Wait for copy to start next plot", cxxopts::value<bool>(waitforcopy))(
 		"p, poolkey", "Pool Public Key (48 bytes)", cxxopts::value<std::string>(pool_key_str))(
 		"f, farmerkey", "Farmer Public Key (48 bytes)", cxxopts::value<std::string>(farmer_key_str))(
 		"G, tmptoggle", "Alternate tmpdir/tmpdir2", cxxopts::value<bool>(tmptoggle))(
@@ -330,6 +333,7 @@ int main(int argc, char** argv)
 		std::cout << " - " << GIT_COMMIT_HASH;
 	#endif	
 	std::cout << std::endl;
+	std::cout << "(Sponsored by Flexpool.io - Check them out if you're looking for a secure and scalable Chia pool)" << std::endl << std::endl;
 	std::cout << "Final Directory: " << final_dir << std::endl;
 	if(num_plots >= 0) {
 		std::cout << "Number of Plots: " << num_plots << std::endl;
@@ -345,8 +349,12 @@ int main(int argc, char** argv)
 					const auto bytes = final_copy(from_to.first, from_to.second);
 					
 					const auto time = (get_wall_time_micros() - total_begin) / 1e6;
-					std::cout << "Copy to " << from_to.second << " finished, took " << time << " sec, "
+					if(time > 1) {
+						std::cout << "Copy to " << from_to.second << " finished, took " << time << " sec, "
 							<< ((bytes / time) / 1024 / 1024) << " MB/s avg." << std::endl;
+					} else {
+						std::cout << "Renamed final plot to " << from_to.second << std::endl;
+					}
 					break;
 				} catch(const std::exception& ex) {
 					std::cout << "Copy to " << from_to.second << " failed with: " << ex.what() << std::endl;
@@ -371,6 +379,12 @@ int main(int argc, char** argv)
 			const auto dst_path = final_dir + out.params.plot_name + ".plot";
 			std::cout << "Started copy to " << dst_path << std::endl;
 			copy_thread.take_copy(std::make_pair(out.plot_file_name, dst_path));
+			if(waitforcopy) {
+				copy_thread.wait();
+			}
+		}
+		else if(tmptoggle) {
+			final_dir = tmp_dir2;
 		}
 		if (tmptoggle) {
 			tmp_dir.swap(tmp_dir2);
@@ -380,5 +394,3 @@ int main(int argc, char** argv)
 	
 	return 0;
 }
-
-
